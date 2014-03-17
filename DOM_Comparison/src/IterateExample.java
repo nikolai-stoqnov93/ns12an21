@@ -2,7 +2,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Date;
 import java.util.*;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -16,6 +15,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -34,27 +34,37 @@ class IterateExample {
 			SAXException, IOException, TransformerException {
 		final Document document1 = openDocument("src/sample.xml");
 		final Document document2 = openDocument("src/sample2.xml");
-		process(document1, document2);
-	
+		final Document output = process(document1, document2);
+		saveDocument(output, "src/output.xml");
 	}
 
-	private static void process(Document document, Document document2) {
+	private static Document process(Document document, Document document2)
+			throws ParserConfigurationException, SAXException, IOException {
+
 		final Node root1 = document.getFirstChild();
 		final Node root2 = document2.getFirstChild();
 
 		fillListFromChildren(attributeList1, root1);
 		fillListFromChildren(attributeList2, root2);
 
-		compareLists(attributeList1, attributeList2);
+		Document output = openDocument("src/output.xml");
+		compareLists(output, attributeList1, attributeList2);
 
+		return output;
 	}
 
-	private static void compareLists(ArrayList<Node> list1,
+	private static void compareLists(Document output, ArrayList<Node> list1,
 			ArrayList<Node> list2) {
+		final Node root = output.getFirstChild();
 		for (Node node1 : list1) {
 			for (Node node2 : list2) {
+
 				if (node1.getNodeValue().equals(node2.getNodeValue())) {
-					System.out.println(node2.getNodeValue());
+					final Element child = output.createElement("movie");
+					Attr attr = output.createAttribute("name");
+					attr.setNodeValue(node1.getNodeValue());
+					child.setAttributeNode(attr);
+					root.appendChild(child);
 				}
 			}
 		}
@@ -94,5 +104,19 @@ class IterateExample {
 		final DocumentBuilder builder = factory.newDocumentBuilder();
 		return builder.parse(new File(filename));
 	}
+
+	private static void saveDocument(Document document, String filename)
+			throws FileNotFoundException, TransformerException {
+		final TransformerFactory factory = TransformerFactory.newInstance();
+		factory.setAttribute("indent-number", 2);
+		Transformer transformer = factory.newTransformer();
+		transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+		transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+
+		final StreamResult out = new StreamResult(new FileOutputStream(
+				new File(filename)));
+		transformer.transform(new DOMSource(document), out);
+	}
+
 }
-/*Имам я и в репозитори в github до 06.03.14 мисля да направя така че да се записват стойностите на атрибутите в отделен xml  файл и ако може да ми предложите продължение на проекта и до 26.02.14 трябва да съм готов и с другото домашно за което имам доста въпроси ,но сега трябва да излизам ,защото ходя и на уроци, ще съм си вкъщи към 16:00 */ 
